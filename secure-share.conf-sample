@@ -1,0 +1,11 @@
+# Path to Apache configuration directory
+apache_conf_path=
+
+# Parent path of your download directory
+share_parent_path=
+
+# Share password default length (min 12)
+share_password_length=12
+
+# Shane name default length
+share_name_length=6

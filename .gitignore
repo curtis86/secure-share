@@ -1,0 +1,8 @@
+activity.log
+.DS_Store
+*.swp
+*.tmp
+.tmp/
+.archives/
+secure-share.conf
+shares/

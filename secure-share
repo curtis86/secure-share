@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+# secure-share: quickly generate password-protected URLs in Apache.
+# Author: Curtis K <curtis@ck.id.au>
+# Source: https://github.com/curtis86/secure-share
+
+# ----- BASH Opts --------- #
+set -u
+
+# ----- Constants --------- #
+readonly home_dir="$( cd "$( dirname $0 )" ; pwd )"
+readonly includes_dir="${home_dir}/includes"
+readonly tmp_dir="${home_dir}/.tmp"
+readonly setup_dir="${home_dir}/.setup"
+readonly share_config_dir="${home_dir}/shares"
+
+readonly log_file="${home_dir}/activity.log"
+readonly functions_file="${includes_dir}/functions.sh"
+readonly conf_file="${home_dir}/secure-share.conf"
+
+readonly progname="$( basename $0 )"
+readonly progversion=0.1
+
+# ----- Variables --------- #
+share_name_min_length=3
+share_password_min_length=12
+share_name_max_length=20
+share_password_max_length=24
+
+# ----- Includes ---------- #
+source "${functions_file}"
+require "${includes_dir}/secure_share.sh"
+
+# ----- Main ----- #
+main () {
+
+  # Script needs to be run as root
+  if ! is_root ; then
+    echoerr "Please run this script as root."
+    exit 1
+  fi
+
+  # Check dependencies
+  check_dependencies "httpd" "tr" "htpasswd"
+
+  # Run setup
+  setup && require "${conf_file}"
+
+  # Load & test config  
+  if ! require "${conf_file}" ; then
+    echoerr "Error: unable to load config, ${conf_file}"
+    exit 1
+  fi
+  require "${conf_file}" && test_config
+
+  # Defaults
+  force=1
+  conf_changed=0
+  password_length=${share_password_length}
+  name_random=0
+  name="$( random_string alpha ${share_name_length} )"
+  
+  export username=""
+
+  while getopts ':hifn:u:p:' OPTION ; do
+    case ${OPTION} in
+      n) [ -z "${OPTARG}" ] && usage && exit 1 ; name="${OPTARG}" ; name_random=1 ;;
+      u) username="${OPTARG}" ;;
+      p) password_length=$OPTARG ;;
+      f) force=0 ;;
+      i) install_apache_config ;; 
+      h) usage && exit 0 ;;
+      \?) echoerr "Error: unknown option -$OPTARG" ; echo && usage && exit 1 ;;
+    esac
+  done
+
+  [ -z "${username}" ] && username="${name}"
+
+  share_exists
+  apache_conf_test
+  create_dummy_conf
+  install_apache_config
+  verify_share_name
+  verify_password_length
+  password="$( random_string alnum ${password_length} )"
+  confirm_create_share
+  [ ${conf_changed} -eq 0 ] && restart_apache
+}; main "$@"
