@@ -195,7 +195,7 @@ function create_config() {
     echoerr "Error: unable to create password file, ${password_file}"
     exit 1
   else
-    echo "$( htpasswd -b -n "${name}" "${password}" )" >> "${password_file}"
+    echo "$( htpasswd -b -n "${username}" "${password}" )" >> "${password_file}"
   fi
 
   echo "Share \"${name}\" created!" && conf_changed=0
